@@ -261,6 +261,7 @@ DOM.communityBtn.addEventListener('click', () => {
         DOM.authContainer.classList.add('hidden');
         DOM.appContainer.classList.remove('hidden');
         loadChats();
+        listenForCalls();
         showToast('Authentication successful', 'success');
         setupBrowserNotifications();
         requestMediaPermissions();
@@ -1093,24 +1094,219 @@ const setupBrowserNotifications = () => {
     }
 };
 
-// --- Calling ---
-if(DOM.voiceCallBtn) DOM.voiceCallBtn.addEventListener('click', () => startCall('Voice'));
-if(DOM.videoCallBtn) DOM.videoCallBtn.addEventListener('click', () => startCall('Video'));
-if(DOM.endCallBtn) DOM.endCallBtn.addEventListener('click', () => {
-    DOM.callModal.classList.add('hidden');
-});
+// --- WebRTC Call Logic ---
+const servers = {
+    iceServers: [
+        { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }
+    ]
+};
 
-const startCall = (type) => {
-    if(!state.activeChatData) return;
-    DOM.callName.textContent = state.activeChatData.name;
-    DOM.callAvatar.src = state.activeChatData.avatar;
-    DOM.callStatus.textContent = `Starting ${type} Call...`;
+let pc = null;
+let localStream = null;
+let remoteStream = null;
+let callUnsub = null;
+let callerCandidatesUnsub = null;
+let calleeCandidatesUnsub = null;
+let currentCallDocId = null;
+
+const initCallUI = (type, isIncoming, name, avatar) => {
+    DOM.callName.textContent = name;
+    DOM.callAvatar.src = avatar;
     DOM.callModal.classList.remove('hidden');
     
-    // Simulate picking up or ringing
-    setTimeout(() => {
-        if(!DOM.callModal.classList.contains('hidden')) {
-            DOM.callStatus.textContent = "Ringing...";
-        }
-    }, 1500);
+    if (isIncoming) {
+        DOM.callStatus.textContent = `Incoming ${type} Call...`;
+        document.getElementById('call-animation-container').classList.remove('hidden');
+        document.getElementById('answer-call-btn').classList.remove('hidden');
+    } else {
+        DOM.callStatus.textContent = `Starting ${type} Call...`;
+        document.getElementById('call-animation-container').classList.remove('hidden');
+        document.getElementById('answer-call-btn').classList.add('hidden');
+    }
+};
+
+const setupMediaSources = async (isVideo) => {
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true });
+        document.getElementById('local-video').srcObject = localStream;
+        remoteStream = new MediaStream();
+        document.getElementById('remote-video').srcObject = remoteStream;
+    } catch(err) {
+        showToast("Microphone/Camera permission denied", "error");
+        cleanupCall();
+        throw err;
+    }
+};
+
+const createPeerConnection = () => {
+    pc = new RTCPeerConnection(servers);
+    
+    localStream.getTracks().forEach(track => {
+        pc.addTrack(track, localStream);
+    });
+
+    pc.ontrack = (event) => {
+        document.getElementById('call-animation-container').classList.add('hidden');
+        event.streams[0].getTracks().forEach(track => {
+            remoteStream.addTrack(track);
+        });
+        DOM.callStatus.textContent = "Connected";
+    };
+};
+
+window.startCall = async (type) => {
+    if(!state.activeChatId) return;
+    const isVideo = type === 'Video';
+    currentCallDocId = state.activeChatId;
+    
+    initCallUI(type, false, state.activeChatData.name, state.activeChatData.avatar);
+    
+    try {
+        await setupMediaSources(isVideo);
+        createPeerConnection();
+
+        const callDoc = doc(db, 'calls', currentCallDocId);
+        const offerCandidates = collection(callDoc, 'callerCandidates');
+        const answerCandidates = collection(callDoc, 'calleeCandidates');
+
+        pc.onicecandidate = (event) => {
+            if (event.candidate) addDoc(offerCandidates, event.candidate.toJSON());
+        };
+
+        const offerDescription = await pc.createOffer();
+        await pc.setLocalDescription(offerDescription);
+
+        const callData = {
+            offer: { type: offerDescription.type, sdp: offerDescription.sdp },
+            caller: state.currentUser.uid,
+            callerName: state.userProfileData.displayName,
+            callerAvatar: state.userProfileData.photoURL,
+            type: type,
+            timestamp: serverTimestamp()
+        };
+        await setDoc(callDoc, callData);
+
+        callUnsub = onSnapshot(callDoc, (snapshot) => {
+            const data = snapshot.data();
+            if(!data) { cleanupCall(); return; } // Call ended
+            if (!pc.currentRemoteDescription && data?.answer) {
+                const answerDescription = new RTCSessionDescription(data.answer);
+                pc.setRemoteDescription(answerDescription);
+            }
+        });
+
+        calleeCandidatesUnsub = onSnapshot(answerCandidates, (snapshot) => {
+            snapshot.docChanges().forEach((change) => {
+                if (change.type === 'added') {
+                    const candidate = new RTCIceCandidate(change.doc.data());
+                    pc.addIceCandidate(candidate);
+                }
+            });
+        });
+
+    } catch(err) { console.error(err); }
+};
+
+document.getElementById('answer-call-btn').addEventListener('click', async () => {
+    if(!currentCallDocId) return;
+    document.getElementById('answer-call-btn').classList.add('hidden');
+    DOM.callStatus.textContent = "Connecting...";
+    
+    const callDoc = doc(db, 'calls', currentCallDocId);
+    const callData = (await getDoc(callDoc)).data();
+    if(!callData) return;
+    
+    const isVideo = callData.type === 'Video';
+    
+    try {
+        await setupMediaSources(isVideo);
+        createPeerConnection();
+        
+        const offerCandidates = collection(callDoc, 'callerCandidates');
+        const answerCandidates = collection(callDoc, 'calleeCandidates');
+
+        pc.onicecandidate = (event) => {
+            if (event.candidate) addDoc(answerCandidates, event.candidate.toJSON());
+        };
+
+        const offerDescription = callData.offer;
+        await pc.setRemoteDescription(new RTCSessionDescription(offerDescription));
+
+        const answerDescription = await pc.createAnswer();
+        await pc.setLocalDescription(answerDescription);
+
+        await updateDoc(callDoc, {
+            answer: { type: answerDescription.type, sdp: answerDescription.sdp }
+        });
+
+        callerCandidatesUnsub = onSnapshot(offerCandidates, (snapshot) => {
+            snapshot.docChanges().forEach((change) => {
+                if (change.type === 'added') {
+                    let data = change.doc.data();
+                    pc.addIceCandidate(new RTCIceCandidate(data));
+                }
+            });
+        });
+        
+    } catch(err) { console.error(err); }
+});
+
+const cleanupCall = () => {
+    if(pc) {
+        pc.close();
+        pc = null;
+    }
+    if(localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+    }
+    if(remoteStream) {
+        remoteStream.getTracks().forEach(track => track.stop());
+        remoteStream = null;
+    }
+    if(callUnsub) { callUnsub(); callUnsub = null; }
+    if(callerCandidatesUnsub) { callerCandidatesUnsub(); callerCandidatesUnsub = null; }
+    if(calleeCandidatesUnsub) { calleeCandidatesUnsub(); calleeCandidatesUnsub = null; }
+    
+    DOM.callModal.classList.add('hidden');
+    document.getElementById('local-video').srcObject = null;
+    document.getElementById('remote-video').srcObject = null;
+    currentCallDocId = null;
+};
+
+if(DOM.voiceCallBtn) DOM.voiceCallBtn.addEventListener('click', () => startCall('Voice'));
+if(DOM.videoCallBtn) DOM.videoCallBtn.addEventListener('click', () => startCall('Video'));
+
+DOM.endCallBtn.addEventListener('click', async () => {
+    if(currentCallDocId) {
+        try { await deleteDoc(doc(db, 'calls', currentCallDocId)); } catch(e) {}
+    }
+    cleanupCall();
+});
+
+window.listenForCalls = () => {
+    const q = query(collection(db, 'calls'));
+    onSnapshot(q, (snapshot) => {
+        snapshot.docChanges().forEach(change => {
+            if (change.type === 'added') {
+                const callData = change.doc.data();
+                if(callData.caller !== state.currentUser.uid) {
+                    const chat = state.contacts.find(c => c.id === change.doc.id);
+                    if(chat) {
+                        currentCallDocId = change.doc.id;
+                        initCallUI(callData.type, true, callData.callerName, callData.callerAvatar);
+                        
+                        callUnsub = onSnapshot(doc(db, 'calls', currentCallDocId), (docSnap) => {
+                            if(!docSnap.exists()) cleanupCall();
+                        });
+                    }
+                }
+            }
+            if (change.type === 'removed') {
+                if(change.doc.id === currentCallDocId) {
+                    cleanupCall();
+                }
+            }
+        });
+    });
 };

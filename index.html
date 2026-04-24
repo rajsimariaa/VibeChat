@@ -344,14 +344,21 @@
 
         <!-- Call Modal -->
         <div id="call-modal" class="modal hidden fade-in" style="z-index: 1100;">
-            <div class="modal-content glass-panel" style="max-width: 350px; text-align: center; padding: 2rem;">
-                <div class="call-animation">
-                    <img src="" id="call-avatar" class="avatar large" style="margin: 0 auto; display: block; border: 4px solid var(--primary-color); animation: pulse 2s infinite;">
-                </div>
-                <h2 id="call-name" style="margin-top: 1.5rem; margin-bottom: 0.5rem;">User Name</h2>
-                <p id="call-status" style="color: var(--text-secondary); margin-bottom: 2rem;">Calling...</p>
+            <div class="modal-content glass-panel" style="max-width: 600px; width: 95%; text-align: center; padding: 1rem; position: relative;">
+                <h2 id="call-name" style="margin-top: 0.5rem; margin-bottom: 0.5rem;">User Name</h2>
+                <p id="call-status" style="color: var(--text-secondary); margin-bottom: 1rem;">Calling...</p>
                 
-                <div style="display: flex; justify-content: center; gap: 1rem;">
+                <div class="video-container" style="position: relative; width: 100%; height: 300px; background: #000; border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 1rem;">
+                    <video id="remote-video" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+                    <video id="local-video" autoplay playsinline muted style="position: absolute; bottom: 10px; right: 10px; width: 100px; height: 150px; background: #222; border-radius: var(--radius-sm); border: 2px solid var(--primary-color); object-fit: cover;"></video>
+                    
+                    <div id="call-animation-container" class="call-animation" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                        <img src="" id="call-avatar" class="avatar large" style="border: 4px solid var(--primary-color); animation: pulse 2s infinite;">
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: center; gap: 1.5rem;">
+                    <button class="icon-btn success hidden" id="answer-call-btn" style="width: 60px; height: 60px; font-size: 1.5rem; background: var(--success-color); color: white;"><i class="fas fa-phone"></i></button>
                     <button class="icon-btn danger" id="end-call-btn" style="width: 60px; height: 60px; font-size: 1.5rem; background: var(--danger-color); color: white;"><i class="fas fa-phone-slash"></i></button>
                 </div>
             </div>
