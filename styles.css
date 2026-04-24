@@ -756,15 +756,12 @@ input:checked + .slider:before { transform: translateX(20px); }
 
 /* Responsive */
 @media (max-width: 768px) {
-    body {
-        align-items: flex-start;
-    }
     .auth-box { 
         padding: 1.5rem; 
-        max-width: 90%; 
-        margin-top: 5vh;
+        width: 90%; 
+        max-width: 400px;
     }
-    .app-container { height: 100dvh; border-radius: 0; max-width: 100%; border: none; }
+    .app-container { height: 100vh; height: 100dvh; border-radius: 0; max-width: 100%; border: none; }
     .sidebar { width: 100%; position: absolute; height: 100%; transition: transform 0.3s ease; }
     .sidebar.mobile-hidden { transform: translateX(-100%); }
     .mobile-back-btn { display: block; }

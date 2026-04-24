@@ -1127,15 +1127,34 @@ const initCallUI = (type, isIncoming, name, avatar) => {
 
 const setupMediaSources = async (isVideo) => {
     try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error("Media devices not supported (insecure context?)");
+        }
         localStream = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true });
-        document.getElementById('local-video').srcObject = localStream;
-        remoteStream = new MediaStream();
-        document.getElementById('remote-video').srcObject = remoteStream;
     } catch(err) {
-        showToast("Microphone/Camera permission denied", "error");
-        cleanupCall();
-        throw err;
+        console.warn("Using mock stream due to permission/context error:", err);
+        showToast("Using simulated call (Camera/Mic unavailable)", "warning");
+        
+        // Create a mock stream with canvas and oscillator for testing on HTTP
+        const canvas = document.createElement('canvas');
+        canvas.width = 640; canvas.height = 480;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#222'; ctx.fillRect(0,0,640,480);
+        ctx.fillStyle = '#fff'; ctx.font = '30px Arial';
+        ctx.fillText('No Camera', 250, 240);
+        localStream = canvas.captureStream(30);
+        
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const dst = audioCtx.createMediaStreamDestination();
+        oscillator.connect(dst);
+        oscillator.start();
+        localStream.addTrack(dst.stream.getAudioTracks()[0]);
     }
+    
+    document.getElementById('local-video').srcObject = localStream;
+    remoteStream = new MediaStream();
+    document.getElementById('remote-video').srcObject = remoteStream;
 };
 
 const createPeerConnection = () => {
