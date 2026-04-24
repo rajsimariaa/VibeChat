@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VibeChat - Secure & Elegant Messaging</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="dark-theme">
+
+    <div id="toast-container"></div>
+
+    <!-- Hidden Inputs for Media -->
+    <input type="file" id="media-upload-input" accept="image/*,video/*" class="hidden">
+    <input type="file" id="avatar-upload-input" accept="image/*" class="hidden">
+
+    <!-- Auth Container -->
+    <div id="auth-container" class="auth-container">
+        <div class="glass-panel auth-box">
+            <div class="auth-header">
+                <div class="logo-icon"><i class="fas fa-comment-dots"></i></div>
+                <h1 class="logo-text">VibeChat</h1>
+                <p class="auth-subtitle">Connect securely with your people</p>
+            </div>
+
+            <div id="login-form">
+                <div class="input-group">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="login-email" placeholder="Email Address" class="auth-input">
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="login-password" placeholder="Password" class="auth-input">
+                </div>
+                <button id="login-btn" class="btn btn-primary btn-block">Login</button>
+
+                <div class="divider"><span>OR</span></div>
+
+                <button id="google-login-btn" class="btn btn-google btn-block">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G"
+                        class="google-icon">
+                    Continue with Google
+                </button>
+                <p class="auth-switch">New here? <span id="show-signup" class="text-link">Create Account</span></p>
+            </div>
+
+            <div id="signup-form" class="hidden">
+                <div class="input-group">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="signup-name" placeholder="Full Name" class="auth-input">
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="signup-email" placeholder="Email Address" class="auth-input">
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="signup-password" placeholder="Password" class="auth-input">
+                </div>
+                <button id="signup-btn" class="btn btn-primary btn-block">Sign Up</button>
+                <p class="auth-switch">Already have an account? <span id="show-login" class="text-link">Login</span></p>
+            </div>
+
+            <!-- Secondary Password Form (MyPeople) -->
+            <div id="secondary-auth-form" class="hidden slide-in">
+                <h3 class="auth-subtitle">Verification Required</h3>
+                <p class="instruction-text">Enter the community access password to continue.</p>
+                <div class="input-group">
+                    <i class="fas fa-shield-alt"></i>
+                    <input type="password" id="community-password" placeholder="Community Password" class="auth-input">
+                </div>
+                <button id="community-login-btn" class="btn btn-primary btn-block">Enter VibeChat</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="app-container" class="app-container hidden fade-in">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <header class="sidebar-header">
+                <div class="user-profile" id="current-user-profile">
+                    <div class="avatar-wrapper">
+                        <img src="https://ui-avatars.com/api/?name=User&background=random" alt="Profile"
+                            id="user-avatar" class="avatar">
+                        <span class="status-indicator online"></span>
+                    </div>
+                    <div class="user-info-brief">
+                        <span id="user-name" class="truncate">Loading...</span>
+                        <span id="user-status-text" class="status-brief truncate">Online</span>
+                    </div>
+                </div>
+                <div class="sidebar-actions">
+                    <button class="icon-btn" id="create-group-btn" title="Create Group"><i class="fas fa-users"></i></button>
+                    <button class="icon-btn" id="theme-toggle" title="Toggle Theme"><i class="fas fa-moon"></i></button>
+                    <button class="icon-btn" id="settings-btn" title="Settings"><i class="fas fa-cog"></i></button>
+                </div>
+            </header>
+
+            <div class="search-container">
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="contact-search" placeholder="Search or start new chat">
+                </div>
+            </div>
+
+            <div class="tabs-container">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="active">Active</button>
+                    <button class="tab-btn" data-tab="friends">Friends</button>
+                    <button class="tab-btn" data-tab="groups">Groups</button>
+                    <button class="tab-btn" data-tab="unread">Unread <span class="badge hidden"
+                            id="unread-total-badge">0</span></button>
+                    <button class="tab-btn" data-tab="archive">Archive</button>
+                </div>
+            </div>
+
+            <div class="contacts-list custom-scroll" id="contacts-list">
+                <!-- Contacts will be rendered here -->
+                <div class="empty-state">
+                    <i class="fas fa-users-slash"></i>
+                    <p>No contacts found</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="chat-area" id="chat-area">
+            <div class="no-chat-selected" id="no-chat-selected">
+                <div class="vibe-icon-large"><i class="fas fa-comment-medical"></i></div>
+                <h2>VibeChat</h2>
+                <p>Select a conversation or start a new one to begin messaging.</p>
+                <p class="encryption-notice"><i class="fas fa-lock"></i> End-to-end encrypted design</p>
+            </div>
+
+            <div class="active-chat hidden" id="active-chat">
+                <header class="chat-header">
+                    <div class="chat-info">
+                        <button class="icon-btn mobile-back-btn" id="back-to-sidebar"><i
+                                class="fas fa-arrow-left"></i></button>
+                        <div class="avatar-wrapper">
+                            <img src="" alt="Chat Avatar" id="chat-avatar" class="avatar">
+                            <span class="status-indicator" id="chat-online-indicator"></span>
+                        </div>
+                        <div class="chat-details" id="chat-details-btn" style="cursor: pointer;">
+                            <h3 id="chat-name" class="truncate">Chat Name</h3>
+                            <span id="chat-last-seen" class="status-text truncate">last seen recently</span>
+                        </div>
+                    </div>
+                    <div class="chat-actions">
+                        <button class="icon-btn" id="voice-call-btn" title="Voice Call"><i class="fas fa-phone"></i></button>
+                        <button class="icon-btn" id="video-call-btn" title="Video Call"><i class="fas fa-video"></i></button>
+                        <button class="icon-btn" id="chat-search-btn" title="Search"><i
+                                class="fas fa-search"></i></button>
+                        <button class="icon-btn" id="chat-star-btn" title="Favorite"><i
+                                class="far fa-star"></i></button>
+                        <button class="icon-btn" id="chat-options-btn" title="Options"><i
+                                class="fas fa-ellipsis-v"></i></button>
+
+                        <!-- Chat Options Dropdown -->
+                        <div class="dropdown-menu hidden" id="chat-options-menu">
+                            <button class="dropdown-item" id="view-profile-btn"><i class="fas fa-user"></i> Contact
+                                Info</button>
+                            <button class="dropdown-item" id="clear-chat-btn"><i class="fas fa-eraser"></i> Clear
+                                Messages</button>
+                            <div class="dropdown-divider"></div>
+                            <button class="dropdown-item danger" id="block-user-btn"><i class="fas fa-ban"></i> Block
+                                User</button>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="chat-search-bar hidden slide-down" id="chat-search-bar-container">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="chat-search-input" placeholder="Search messages...">
+                    <button class="icon-btn small" id="search-up"><i class="fas fa-chevron-up"></i></button>
+                    <button class="icon-btn small" id="search-down"><i class="fas fa-chevron-down"></i></button>
+                    <button class="icon-btn small" id="close-chat-search"><i class="fas fa-times"></i></button>
+                </div>
+
+                <div class="messages-container custom-scroll" id="messages-container">
+                    <!-- Messages will be rendered here -->
+                </div>
+
+                <div class="chat-input-area">
+                    <div id="emoji-picker-container" class="hidden" style="position: absolute; bottom: 70px; left: 10px; z-index: 100; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 5px;">
+                        <!-- Simple emoji list -->
+                        <span class="emoji-opt" style="cursor:pointer; font-size: 1.5rem; margin: 2px;">😀</span>
+                        <span class="emoji-opt" style="cursor:pointer; font-size: 1.5rem; margin: 2px;">😂</span>
+                        <span class="emoji-opt" style="cursor:pointer; font-size: 1.5rem; margin: 2px;">❤️</span>
+                        <span class="emoji-opt" style="cursor:pointer; font-size: 1.5rem; margin: 2px;">👍</span>
+                        <span class="emoji-opt" style="cursor:pointer; font-size: 1.5rem; margin: 2px;">🔥</span>
+                        <span class="emoji-opt" style="cursor:pointer; font-size: 1.5rem; margin: 2px;">🎉</span>
+                    </div>
+                    <button class="icon-btn" id="emoji-btn"><i class="far fa-smile"></i></button>
+                    <button class="icon-btn" id="attach-btn"><i class="fas fa-paperclip"></i></button>
+                    
+                    <div class="input-wrapper">
+                        <div id="replying-to-container" class="replying-to hidden">
+                            <div class="reply-content">
+                                <span class="reply-user" id="reply-to-user">User</span>
+                                <span class="reply-text truncate" id="reply-to-text">Message</span>
+                            </div>
+                            <button class="icon-btn small" id="cancel-reply"><i class="fas fa-times"></i></button>
+                        </div>
+                        <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off">
+                    </div>
+
+                    <button class="icon-btn" id="record-btn"><i class="fas fa-microphone"></i></button>
+
+                    <div class="voice-recording-ui hidden slide-in-right" id="voice-recording-ui">
+                        <div class="recording-pulse"></div>
+                        <span id="recording-time">00:00</span>
+                        <span class="recording-instruction">Click send to deliver, trash to discard</span>
+                        <button class="icon-btn danger" id="cancel-recording" title="Discard"><i
+                                class="fas fa-trash"></i></button>
+                    </div>
+
+                    <button class="icon-btn primary-btn send-btn-animated" id="send-btn"><i
+                            class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="modal hidden fade-in">
+            <div class="modal-content glass-panel">
+                <div class="modal-header">
+                    <h2>Settings</h2>
+                    <button class="close-btn icon-btn" id="close-settings"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body custom-scroll">
+                    <div class="settings-section">
+                        <h3>Personal Details</h3>
+                        <div class="profile-edit">
+                            <div class="avatar-edit-container">
+                                <img src="https://ui-avatars.com/api/?name=User" alt="Avatar" id="edit-avatar"
+                                    class="avatar large">
+                                <button class="avatar-edit-btn"><i class="fas fa-camera"></i></button>
+                            </div>
+                            <div class="input-group">
+                                <label>Display Name</label>
+                                <input type="text" id="edit-name" class="settings-input" placeholder="Display Name">
+                            </div>
+                            <div class="input-group">
+                                <label>About</label>
+                                <input type="text" id="edit-bio" class="settings-input" placeholder="Available">
+                            </div>
+                            <button class="btn btn-primary" id="save-profile-btn">Save Changes</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>Preferences</h3>
+                        <div class="pref-item">
+                            <span>Notifications</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-notifications" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="pref-item">
+                            <span>Read Receipts</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-read-receipts" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="settings-section danger-zone">
+                        <h3>Account Management</h3>
+                        <button class="btn btn-secondary btn-block mb-2" id="logout-btn"><i
+                                class="fas fa-sign-out-alt"></i> Logout</button>
+                        <button class="btn btn-danger btn-block" id="delete-account-btn"><i
+                                class="fas fa-user-minus"></i> Delete Account</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Group Modal -->
+        <div id="create-group-modal" class="modal hidden fade-in">
+            <div class="modal-content glass-panel" style="max-width: 400px; text-align: center;">
+                <div class="modal-header">
+                    <h2>Create New Group</h2>
+                    <button class="close-btn icon-btn" id="close-create-group-modal"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group">
+                        <i class="fas fa-users"></i>
+                        <input type="text" id="new-group-name" placeholder="Group Name" class="auth-input">
+                    </div>
+                    <button id="confirm-create-group-btn" class="btn btn-primary btn-block" style="margin-top: 1rem;">Create Group</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Member Modal -->
+        <div id="add-member-modal" class="modal hidden fade-in" style="z-index: 1050;">
+            <div class="modal-content glass-panel" style="max-width: 400px; text-align: center;">
+                <div class="modal-header">
+                    <h2>Add Member</h2>
+                    <button class="close-btn icon-btn" id="close-add-member-modal"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.9rem;">Enter the exact name of the user you wish to invite.</p>
+                    <div class="input-group">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="new-member-email" placeholder="User Name" class="auth-input">
+                    </div>
+                    <button id="confirm-add-member-btn" class="btn btn-primary btn-block" style="margin-top: 1rem;">Add to Group</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact/Group Info Modal -->
+        <div id="info-modal" class="modal hidden fade-in">
+            <div class="modal-content glass-panel" style="max-width: 400px; text-align: center;">
+                <div class="modal-header">
+                    <h2>Contact Info</h2>
+                    <button class="close-btn icon-btn" id="close-info-modal"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body custom-scroll">
+                    <img src="" alt="Avatar" id="info-avatar" class="avatar large" style="margin: 0 auto 1rem auto; display: block;">
+                    <h3 id="info-name" style="font-size: 1.5rem; margin-bottom: 0.5rem;">Name</h3>
+                    <p id="info-status" style="color: var(--text-secondary); margin-bottom: 1.5rem;">Status</p>
+                    
+                    <div id="info-actions" style="display: flex; gap: 1rem; justify-content: center; margin-bottom: 1.5rem;">
+                        <!-- Actions will be rendered here -->
+                    </div>
+
+                    <div id="group-members-section" class="hidden" style="text-align: left; background: var(--bg-color); padding: 1rem; border-radius: var(--radius-md);">
+                        <h4 style="margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-secondary);">Group Members</h4>
+                        <ul id="group-members-list" style="list-style: none; padding: 0;"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Call Modal -->
+        <div id="call-modal" class="modal hidden fade-in" style="z-index: 1100;">
+            <div class="modal-content glass-panel" style="max-width: 350px; text-align: center; padding: 2rem;">
+                <div class="call-animation">
+                    <img src="" id="call-avatar" class="avatar large" style="margin: 0 auto; display: block; border: 4px solid var(--primary-color); animation: pulse 2s infinite;">
+                </div>
+                <h2 id="call-name" style="margin-top: 1.5rem; margin-bottom: 0.5rem;">User Name</h2>
+                <p id="call-status" style="color: var(--text-secondary); margin-bottom: 2rem;">Calling...</p>
+                
+                <div style="display: flex; justify-content: center; gap: 1rem;">
+                    <button class="icon-btn danger" id="end-call-btn" style="width: 60px; height: 60px; font-size: 1.5rem; background: var(--danger-color); color: white;"><i class="fas fa-phone-slash"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Message Context Menu -->
+        <div id="message-context-menu" class="context-menu hidden shadow-xl">
+            <button class="context-item" id="ctx-reply"><i class="fas fa-reply"></i> Reply</button>
+            <button class="context-item" id="ctx-forward"><i class="fas fa-share"></i> Forward</button>
+            <button class="context-item" id="ctx-star"><i class="fas fa-star"></i> Star</button>
+            <button class="context-item" id="ctx-edit"><i class="fas fa-pen"></i> Edit</button>
+            <div class="context-divider"></div>
+            <button class="context-item danger" id="ctx-delete-me"><i class="fas fa-trash"></i> Delete for Me</button>
+            <button class="context-item danger" id="ctx-delete-everyone"><i class="fas fa-trash-alt"></i> Delete for
+                Everyone</button>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script type="module" src="app.js"></script>
+</body>
+
+</html>
