@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
     <title>VibeChat - Secure & Elegant Messaging</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -360,6 +360,20 @@
                 <div style="display: flex; justify-content: center; gap: 1.5rem;">
                     <button class="icon-btn success hidden" id="answer-call-btn" style="width: 60px; height: 60px; font-size: 1.5rem; background: var(--success-color); color: white;"><i class="fas fa-phone"></i></button>
                     <button class="icon-btn danger" id="end-call-btn" style="width: 60px; height: 60px; font-size: 1.5rem; background: var(--danger-color); color: white;"><i class="fas fa-phone-slash"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Forward Modal -->
+        <div id="forward-modal" class="modal hidden fade-in" style="z-index: 1050;">
+            <div class="modal-content glass-panel" style="max-width: 400px; text-align: center;">
+                <div class="modal-header">
+                    <h2>Forward Message</h2>
+                    <button class="close-btn icon-btn" id="close-forward-modal"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body custom-scroll">
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.9rem;">Select a contact to forward to:</p>
+                    <ul id="forward-contacts-list" style="list-style: none; padding: 0; max-height: 250px; overflow-y: auto; border-radius: var(--radius-md); background: var(--chat-bg);"></ul>
                 </div>
             </div>
         </div>

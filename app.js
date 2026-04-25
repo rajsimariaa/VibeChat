@@ -130,7 +130,13 @@ const DOM = {
     callAvatar: document.getElementById('call-avatar'),
     callName: document.getElementById('call-name'),
     callStatus: document.getElementById('call-status'),
-    endCallBtn: document.getElementById('end-call-btn')
+    endCallBtn: document.getElementById('end-call-btn'),
+    
+    forwardModal: document.getElementById('forward-modal'),
+    closeForwardModal: document.getElementById('close-forward-modal'),
+    forwardContactsList: document.getElementById('forward-contacts-list'),
+    
+    backToSidebar: document.getElementById('back-to-sidebar')
 };
 
 // --- State ---
@@ -265,6 +271,14 @@ DOM.communityBtn.addEventListener('click', () => {
         showToast('Authentication successful', 'success');
         setupBrowserNotifications();
         requestMediaPermissions();
+        
+        // Setup Visual Viewport for mobile keyboard
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', () => {
+                document.body.style.height = `${window.visualViewport.height}px`;
+                if(DOM.messagesContainer) DOM.messagesContainer.scrollTop = DOM.messagesContainer.scrollHeight;
+            });
+        }
     } else { 
         showToast('Invalid community password', 'error'); 
     }
@@ -551,6 +565,12 @@ const openChat = async (contact) => {
     });
 };
 
+if(DOM.backToSidebar) {
+    DOM.backToSidebar.addEventListener('click', () => {
+        DOM.sidebar.classList.remove('mobile-hidden');
+    });
+}
+
 const renderMessages = () => {
     DOM.messagesContainer.innerHTML = '';
     let displayedMessages = state.messages;
@@ -575,10 +595,10 @@ const renderMessages = () => {
         } else {
              let replyHtml = '';
              if(msg.replyTo) {
-                 const repMsg = state.messages.find(m => m.id === msg.replyTo);
-                 const repText = repMsg ? (repMsg.text || 'Media') : 'Deleted message';
-                 replyHtml = `<div class="replied-message-ref">Replying: ${repText}</div>`;
-             }
+                  const repMsg = state.messages.find(m => m.id === msg.replyTo);
+                  const repText = repMsg ? (repMsg.text || 'Media') : 'Deleted message';
+                  replyHtml = `<div class="replied-message-ref" onclick="document.querySelector('[data-id=\'${msg.replyTo}\']')?.scrollIntoView({behavior:'smooth', block:'center'})">Replying: ${repText}</div>`;
+              }
              
              if(msg.type === 'voice') {
                  contentHtml = `<div class="message-bubble"><audio controls src="${msg.mediaUrl}"></audio></div>`;
@@ -626,6 +646,11 @@ const renderMessages = () => {
         }
     });
     DOM.messagesContainer.scrollTop = DOM.messagesContainer.scrollHeight;
+};
+
+const cancelReply = () => {
+    state.replyingToMsgId = null;
+    DOM.replyContainer.classList.add('hidden');
 };
 
 // --- Sending & Actions ---
@@ -813,7 +838,7 @@ document.getElementById('ctx-reply').addEventListener('click', () => {
     DOM.contextMenu.classList.add('hidden');
 });
 
-DOM.cancelReply.addEventListener('click', () => { state.replyingToMsgId = null; DOM.replyContainer.classList.add('hidden'); });
+DOM.cancelReply.addEventListener('click', cancelReply);
 
 document.getElementById('ctx-edit').addEventListener('click', () => {
     const msg = state.messages.find(m => m.id === state.contextMenuTargetId);
@@ -847,6 +872,55 @@ document.getElementById('ctx-delete-me').addEventListener('click', async () => {
         await updateDoc(msgRef, { deletedFor: newDeletedFor });
     }
     DOM.contextMenu.classList.add('hidden');
+});
+
+// Forward Logic
+document.getElementById('ctx-forward').addEventListener('click', () => {
+    const msg = state.messages.find(m => m.id === state.contextMenuTargetId);
+    if(msg) {
+        DOM.forwardContactsList.innerHTML = '';
+        const forwardableContacts = state.contacts.filter(c => !c.isNew);
+        if(forwardableContacts.length === 0) {
+            DOM.forwardContactsList.innerHTML = '<li style="padding: 1rem;">No contacts available.</li>';
+        } else {
+            forwardableContacts.forEach(contact => {
+                const li = document.createElement('li');
+                li.style.padding = '0.75rem';
+                li.style.borderBottom = '1px solid var(--border-color)';
+                li.style.display = 'flex';
+                li.style.alignItems = 'center';
+                li.style.gap = '1rem';
+                li.style.cursor = 'pointer';
+                li.innerHTML = `
+                    <img src="${contact.avatar}" style="width: 30px; height: 30px; border-radius: 50%;">
+                    <span>${contact.name}</span>
+                `;
+                li.onclick = async () => {
+                    const newMsg = {
+                        senderId: state.currentUser.uid,
+                        text: msg.text || '',
+                        type: msg.type || 'text',
+                        timestamp: serverTimestamp(),
+                        readBy: [state.currentUser.uid]
+                    };
+                    if(msg.mediaUrl) newMsg.mediaUrl = msg.mediaUrl;
+                    
+                    try {
+                        await addDoc(collection(db, `chats/${contact.id}/messages`), newMsg);
+                        showToast('Message forwarded successfully', 'success');
+                        DOM.forwardModal.classList.add('hidden');
+                    } catch(e) { showToast('Error forwarding message', 'error'); }
+                };
+                DOM.forwardContactsList.appendChild(li);
+            });
+        }
+        DOM.forwardModal.classList.remove('hidden');
+    }
+    DOM.contextMenu.classList.add('hidden');
+});
+
+DOM.closeForwardModal.addEventListener('click', () => {
+    DOM.forwardModal.classList.add('hidden');
 });
 
 document.getElementById('ctx-delete-everyone').addEventListener('click', async () => {
@@ -1200,6 +1274,7 @@ window.startCall = async (type) => {
             caller: state.currentUser.uid,
             callerName: state.userProfileData.displayName,
             callerAvatar: state.userProfileData.photoURL,
+            participants: state.activeChatData.participants || [],
             type: type,
             timestamp: serverTimestamp()
         };
@@ -1309,9 +1384,11 @@ window.listenForCalls = () => {
         snapshot.docChanges().forEach(change => {
             if (change.type === 'added') {
                 const callData = change.doc.data();
-                if(callData.caller !== state.currentUser.uid) {
-                    const chat = state.contacts.find(c => c.id === change.doc.id);
-                    if(chat) {
+                // Ensure the call is meant for us and we are not the caller
+                if(callData.caller !== state.currentUser.uid && callData.participants && callData.participants.includes(state.currentUser.uid)) {
+                    // Filter out stale calls (older than 2 minutes)
+                    const isStale = callData.timestamp && ((Date.now() - callData.timestamp.toMillis()) > 120000);
+                    if(!isStale) {
                         currentCallDocId = change.doc.id;
                         initCallUI(callData.type, true, callData.callerName, callData.callerAvatar);
                         
