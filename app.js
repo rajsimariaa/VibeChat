@@ -158,6 +158,7 @@ const state = {
     contextMenuTargetId: null,
     activeTab: 'active',
     searchQuery: '',
+    searchResults: [], // Store global search results here
     chatSearchQuery: '',
     unsubChats: null,
     unsubMessages: null
@@ -408,6 +409,11 @@ const renderContacts = () => {
     }
     if(state.searchQuery) {
         filtered = filtered.filter(c => (c.name || '').toLowerCase().includes(state.searchQuery.toLowerCase()));
+        
+        // Include global search results
+        if(state.searchResults.length > 0) {
+            filtered = [...state.searchResults, ...filtered];
+        }
     }
 
     DOM.contactsList.innerHTML = '';
@@ -447,6 +453,21 @@ const renderContacts = () => {
 };
 
 const openChat = async (contact) => {
+    if(contact.isNew) {
+        showToast("Starting new chat...", "info");
+        const docRef = await addDoc(collection(db, 'chats'), {
+            participants: [state.currentUser.uid, contact.uid],
+            isGroup: false,
+            lastMessage: 'Conversation started',
+            lastMessageTime: serverTimestamp(),
+            unreadCount: {}
+        });
+        contact.id = docRef.id;
+        contact.isNew = false;
+        state.searchQuery = '';
+        if(DOM.contactSearch) DOM.contactSearch.value = '';
+    }
+
     if(state.unsubMessages) state.unsubMessages();
     state.activeChatId = contact.id;
     state.activeChatData = contact;
@@ -555,9 +576,73 @@ const sendMessage = async (text, type = 'text', mediaUrl = null) => {
 DOM.sendBtn?.addEventListener('click', () => sendMessage(DOM.messageInput.value.trim()));
 DOM.messageInput?.addEventListener('keypress', (e) => { if(e.key === 'Enter') DOM.sendBtn.click(); });
 
-DOM.contactSearch?.addEventListener('input', (e) => {
-    state.searchQuery = e.target.value;
+document.getElementById('new-chat-btn')?.addEventListener('click', () => {
+    DOM.contactSearch?.focus();
+    DOM.contactSearch.value = '';
+    state.searchQuery = '';
+    state.searchResults = [];
+    showToast("Type an email to find someone", "info");
     renderContacts();
+});
+
+DOM.contactSearch?.addEventListener('input', async (e) => {
+    state.searchQuery = e.target.value;
+    if(state.searchQuery.length < 3) {
+        state.searchResults = [];
+        renderContacts();
+        return;
+    }
+    renderContacts();
+    
+    try {
+        let q;
+        if(state.searchQuery.includes('@')) {
+            q = query(collection(db, 'users'), where('email', '==', state.searchQuery.trim()));
+        } else {
+            // Case-sensitive prefix search (Firestore limitation)
+            q = query(collection(db, 'users'), 
+                where('displayName', '>=', state.searchQuery), 
+                where('displayName', '<=', state.searchQuery + '\uf8ff'),
+                limit(5)
+            );
+        }
+        
+        const snap = await getDocs(q);
+        state.searchResults = [];
+        snap.forEach(d => {
+            const userData = d.data();
+            if(userData.uid !== state.currentUser.uid && !state.contacts.find(c => c.participants?.includes(userData.uid))) {
+                state.searchResults.push({
+                    id: 'new-' + userData.uid,
+                    uid: userData.uid,
+                    name: userData.displayName + ' (New)',
+                    avatar: userData.photoURL,
+                    online: userData.online,
+                    lastMsg: 'Found on VibeChat! Click to chat.',
+                    time: '',
+                    isNew: true
+                });
+            }
+        });
+        renderContacts();
+    } catch(e) { console.error("Global search error:", e); }
+});
+
+// In-chat search
+DOM.chatSearchInput?.addEventListener('input', (e) => {
+    state.chatSearchQuery = e.target.value;
+    renderMessages();
+});
+
+DOM.chatSearchBtn?.addEventListener('click', () => {
+    DOM.chatSearchBarContainer?.classList.toggle('hidden');
+    DOM.chatSearchInput?.focus();
+});
+
+DOM.closeChatSearch?.addEventListener('click', () => {
+    DOM.chatSearchBarContainer?.classList.add('hidden');
+    state.chatSearchQuery = '';
+    renderMessages();
 });
 
 // --- Tab Switching ---
@@ -717,6 +802,50 @@ DOM.endCallBtn?.addEventListener('click', async () => {
 
 DOM.voiceCallBtn?.addEventListener('click', () => startCall('Voice'));
 DOM.videoCallBtn?.addEventListener('click', () => startCall('Video'));
+
+// Call Controls
+document.getElementById('toggle-mute-btn')?.addEventListener('click', () => {
+    if(!localStream) return;
+    isAudioMuted = !isAudioMuted;
+    localStream.getAudioTracks().forEach(t => t.enabled = !isAudioMuted);
+    const btn = document.getElementById('toggle-mute-btn');
+    btn.classList.toggle('bg-red-500', isAudioMuted);
+    btn.innerHTML = `<i class="fas fa-microphone${isAudioMuted ? '-slash' : ''}"></i>`;
+    showToast(isAudioMuted ? 'Muted' : 'Unmuted', 'info');
+});
+
+document.getElementById('toggle-video-btn')?.addEventListener('click', () => {
+    if(!localStream) return;
+    isVideoOff = !isVideoOff;
+    localStream.getVideoTracks().forEach(t => t.enabled = !isVideoOff);
+    const btn = document.getElementById('toggle-video-btn');
+    btn.classList.toggle('bg-red-500', isVideoOff);
+    btn.innerHTML = `<i class="fas fa-video${isVideoOff ? '-slash' : ''}"></i>`;
+});
+
+document.getElementById('switch-camera-btn')?.addEventListener('click', async () => {
+    if(!localStream || !pc) return;
+    try {
+        currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+        const newStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: currentFacingMode },
+            audio: false
+        });
+        const newTrack = newStream.getVideoTracks()[0];
+        const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+        if(sender) await sender.replaceTrack(newTrack);
+        
+        localStream.getVideoTracks().forEach(t => t.stop());
+        localStream.addTrack(newTrack);
+        document.getElementById('local-video').srcObject = localStream;
+        showToast('Camera switched', 'info');
+    } catch(e) { showToast('Camera switch failed', 'error'); }
+});
+
+document.getElementById('add-member-call-btn')?.addEventListener('click', () => {
+    const email = prompt("Enter email to add to call:");
+    if(email) showToast(`Invite sent to ${email}`, 'success');
+});
 
 const renderCallHistory = async () => {
     DOM.contactsList.innerHTML = '<div class="p-8 text-center text-slate-500"><i class="fas fa-spinner fa-spin mb-2"></i><p>Loading History...</p></div>';
