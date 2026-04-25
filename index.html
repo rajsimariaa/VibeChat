@@ -128,7 +128,8 @@
 
             <div class="tabs-container px-4 mb-2">
                 <div class="tabs flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-                    <button class="tab-btn active bg-indigo-600 text-white px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shadow-lg shadow-indigo-500/20" data-tab="active">Active</button>
+                    <button class="tab-btn bg-slate-800 text-slate-400 hover:text-slate-200 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all" data-tab="active">Active</button>
+                    <button class="tab-btn bg-slate-800 text-slate-400 hover:text-slate-200 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all" data-tab="calls">Calls</button>
                     <button class="tab-btn bg-slate-800 text-slate-400 hover:text-slate-200 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all" data-tab="friends">Friends</button>
                     <button class="tab-btn bg-slate-800 text-slate-400 hover:text-slate-200 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all" data-tab="groups">Groups</button>
                     <button class="tab-btn bg-slate-800 text-slate-400 hover:text-slate-200 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all" data-tab="unread">Unread <span class="badge hidden ml-1 bg-indigo-500 text-[10px] px-1.5 py-0.5 rounded-full"
@@ -375,9 +376,16 @@
                     </div>
                 </div>
 
-                <div style="display: flex; justify-content: center; gap: 1.5rem;">
-                    <button class="icon-btn success hidden" id="answer-call-btn" style="width: 60px; height: 60px; font-size: 1.5rem; background: var(--success-color); color: white;"><i class="fas fa-phone"></i></button>
-                    <button class="icon-btn danger" id="end-call-btn" style="width: 60px; height: 60px; font-size: 1.5rem; background: var(--danger-color); color: white;"><i class="fas fa-phone-slash"></i></button>
+                <div class="flex flex-col items-center gap-4">
+                    <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+                        <button class="icon-btn bg-slate-800 hover:bg-slate-700" id="toggle-mute-btn" title="Mute/Unmute"><i class="fas fa-microphone"></i></button>
+                        <button class="icon-btn bg-slate-800 hover:bg-slate-700" id="toggle-video-btn" title="Camera On/Off"><i class="fas fa-video"></i></button>
+                        <button class="icon-btn bg-slate-800 hover:bg-slate-700" id="switch-camera-btn" title="Switch Camera"><i class="fas fa-camera-rotate"></i></button>
+                        <button class="icon-btn bg-slate-800 hover:bg-slate-700" id="add-member-call-btn" title="Add Member"><i class="fas fa-user-plus"></i></button>
+                        <button class="icon-btn success hidden" id="answer-call-btn" style="width: 60px; height: 60px; font-size: 1.5rem; background: var(--success-color); color: white;"><i class="fas fa-phone"></i></button>
+                        <button class="icon-btn danger" id="end-call-btn" style="width: 60px; height: 60px; font-size: 1.5rem; background: var(--danger-color); color: white;"><i class="fas fa-phone-slash"></i></button>
+                    </div>
+                    <div id="call-timer" class="text-indigo-400 text-lg font-mono tracking-widest bg-slate-900/50 px-4 py-1 rounded-full border border-indigo-500/30">00:00</div>
                 </div>
             </div>
         </div>

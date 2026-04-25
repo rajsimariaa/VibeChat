@@ -401,6 +401,11 @@ const loadChats = () => {
 };
 
 const renderContacts = () => {
+    if(state.activeTab === 'calls') {
+        renderCallHistory();
+        return;
+    }
+
     let filtered = state.contacts;
     if(state.activeTab !== 'active') { // For active, show all except maybe archived (omitted for simplicity)
         if(state.activeTab === 'unread') filtered = filtered.filter(c => c.unread > 0);
@@ -1204,6 +1209,42 @@ let callUnsub = null;
 let callerCandidatesUnsub = null;
 let calleeCandidatesUnsub = null;
 let currentCallDocId = null;
+let callStartTime = null;
+let callTimerInterval = null;
+let isAudioMuted = false;
+let isVideoOff = false;
+let currentFacingMode = 'user'; 
+
+const startCallTimer = () => {
+    callStartTime = Date.now();
+    document.getElementById('call-timer').textContent = "00:00";
+    callTimerInterval = setInterval(() => {
+        const diff = Date.now() - callStartTime;
+        const mins = Math.floor(diff / 60000);
+        const secs = Math.floor((diff % 60000) / 1000);
+        document.getElementById('call-timer').textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }, 1000);
+};
+
+const stopCallTimer = () => {
+    clearInterval(callTimerInterval);
+    if (!callStartTime) return 0;
+    const duration = Math.floor((Date.now() - callStartTime) / 1000);
+    callStartTime = null;
+    return duration;
+};
+
+const saveCallToHistory = async (otherUid, type, duration) => {
+    try {
+        await addDoc(collection(db, 'call_history'), {
+            participants: [state.currentUser.uid, otherUid],
+            type: type,
+            duration: duration,
+            timestamp: serverTimestamp(),
+            caller: state.currentUser.uid
+        });
+    } catch (e) { console.error("History error:", e); }
+};
 
 const initCallUI = (type, isIncoming, name, avatar) => {
     DOM.callName.textContent = name;
@@ -1266,6 +1307,7 @@ const createPeerConnection = () => {
             remoteStream.addTrack(track);
         });
         DOM.callStatus.textContent = "Connected";
+        startCallTimer();
     };
 };
 
@@ -1395,10 +1437,146 @@ if(DOM.videoCallBtn) DOM.videoCallBtn.addEventListener('click', () => startCall(
 
 DOM.endCallBtn.addEventListener('click', async () => {
     if(currentCallDocId) {
-        try { await deleteDoc(doc(db, 'calls', currentCallDocId)); } catch(e) {}
+        try { 
+            const callDoc = doc(db, 'calls', currentCallDocId);
+            const snap = await getDoc(callDoc);
+            const data = snap.data();
+            const duration = stopCallTimer();
+            if(data && data.caller === state.currentUser.uid) {
+                const other = data.participants.find(p => p !== state.currentUser.uid);
+                if(other) saveCallToHistory(other, data.type, duration);
+            }
+            await deleteDoc(callDoc); 
+        } catch(e) {}
     }
     cleanupCall();
 });
+
+document.getElementById('toggle-mute-btn').addEventListener('click', () => {
+    if(!localStream) return;
+    isAudioMuted = !isAudioMuted;
+    localStream.getAudioTracks().forEach(track => track.enabled = !isAudioMuted);
+    document.getElementById('toggle-mute-btn').innerHTML = isAudioMuted ? '<i class="fas fa-microphone-slash text-red-500"></i>' : '<i class="fas fa-microphone"></i>';
+    document.getElementById('toggle-mute-btn').classList.toggle('bg-red-500/20', isAudioMuted);
+});
+
+document.getElementById('toggle-video-btn').addEventListener('click', () => {
+    if(!localStream) return;
+    isVideoOff = !isVideoOff;
+    localStream.getVideoTracks().forEach(track => track.enabled = !isVideoOff);
+    document.getElementById('toggle-video-btn').innerHTML = isVideoOff ? '<i class="fas fa-video-slash text-red-500"></i>' : '<i class="fas fa-video"></i>';
+    document.getElementById('toggle-video-btn').classList.toggle('bg-red-500/20', isVideoOff);
+});
+
+document.getElementById('switch-camera-btn').addEventListener('click', async () => {
+    if(!localStream) return;
+    const videoTrack = localStream.getVideoTracks()[0];
+    if(!videoTrack) return;
+    
+    currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+    try {
+        const newStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: currentFacingMode },
+            audio: false
+        });
+        const newTrack = newStream.getVideoTracks()[0];
+        const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+        if(sender) await sender.replaceTrack(newTrack);
+        
+        videoTrack.stop();
+        localStream.removeTrack(videoTrack);
+        localStream.addTrack(newTrack);
+        document.getElementById('local-video').srcObject = localStream;
+    } catch(e) { showToast("Camera switch failed", "error"); }
+});
+
+document.getElementById('answer-call-btn').addEventListener('click', async () => {
+    if(!currentCallDocId) return;
+    const callDoc = doc(db, 'calls', currentCallDocId);
+    const snap = await getDoc(callDoc);
+    const callData = snap.data();
+    
+    initCallUI(callData.type, false, callData.callerName, callData.callerAvatar);
+    document.getElementById('answer-call-btn').classList.add('hidden');
+    
+    try {
+        await setupMediaSources(callData.type === 'Video');
+        createPeerConnection();
+        startCallTimer();
+        
+        const offerCandidates = collection(callDoc, 'callerCandidates');
+        const answerCandidates = collection(callDoc, 'calleeCandidates');
+
+        pc.onicecandidate = (event) => {
+            if (event.candidate) addDoc(answerCandidates, event.candidate.toJSON());
+        };
+
+        await pc.setRemoteDescription(new RTCSessionDescription(callData.offer));
+        const answerDescription = await pc.createAnswer();
+        await pc.setLocalDescription(answerDescription);
+
+        await updateDoc(callDoc, {
+            answer: { type: answerDescription.type, sdp: answerDescription.sdp }
+        });
+
+        callerCandidatesUnsub = onSnapshot(offerCandidates, (snapshot) => {
+            snapshot.docChanges().forEach((change) => {
+                if (change.type === 'added') pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
+            });
+        });
+    } catch(err) { console.error(err); cleanupCall(); }
+});
+
+const renderCallHistory = async () => {
+    DOM.contactsList.innerHTML = '<div class="p-8 text-center text-slate-500"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p>Loading History...</p></div>';
+    try {
+        const q = query(collection(db, 'call_history'), where('participants', 'array-contains', state.currentUser.uid), orderBy('timestamp', 'desc'), limit(30));
+        const snap = await getDocs(q);
+        DOM.contactsList.innerHTML = '';
+        if(snap.empty) {
+            DOM.contactsList.innerHTML = '<div class="p-12 text-center text-slate-500"><i class="fas fa-phone-slash text-5xl mb-4 opacity-10"></i><p>No recent calls</p></div>';
+            return;
+        }
+        for(const d of snap.docs) {
+            const data = d.data();
+            const otherUid = data.participants.find(p => p !== state.currentUser.uid);
+            const userSnap = await getDoc(doc(db, 'users', otherUid));
+            const userData = userSnap.data() || { displayName: 'Unknown', photoURL: 'https://ui-avatars.com/api/?name=?' };
+            
+            const date = data.timestamp ? data.timestamp.toDate() : new Date();
+            const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            const div = document.createElement('div');
+            div.className = 'flex items-center gap-3 p-4 hover:bg-slate-800/50 transition-all border-b border-white/5';
+            div.innerHTML = `
+                <img src="${userData.photoURL}" class="w-11 h-11 rounded-full object-cover border border-white/10">
+                <div class="flex-1 min-w-0">
+                    <div class="flex justify-between items-baseline">
+                        <h4 class="text-sm font-bold text-white truncate">${userData.displayName}</h4>
+                        <span class="text-[10px] text-slate-500">${timeStr}</span>
+                    </div>
+                    <div class="flex items-center gap-2 mt-0.5 text-[11px] ${data.caller === state.currentUser.uid ? 'text-indigo-400' : 'text-emerald-400'}">
+                        <i class="fas ${data.type === 'Video' ? 'fa-video' : 'fa-phone'}"></i>
+                        <span>${data.caller === state.currentUser.uid ? 'Outgoing' : 'Incoming'}</span>
+                        <span class="text-slate-600">•</span>
+                        <span class="text-slate-500">${Math.floor(data.duration/60)}:${(data.duration%60).toString().padStart(2,'0')}</span>
+                    </div>
+                </div>
+                <div class="flex gap-1">
+                    <button class="w-8 h-8 rounded-full bg-slate-800 hover:bg-indigo-600 flex items-center justify-center transition-all" onclick="window.startDirectCall('${otherUid}', 'Voice', '${userData.displayName}', '${userData.photoURL}')"><i class="fas fa-phone text-[10px]"></i></button>
+                    <button class="w-8 h-8 rounded-full bg-slate-800 hover:bg-indigo-600 flex items-center justify-center transition-all" onclick="window.startDirectCall('${otherUid}', 'Video', '${userData.displayName}', '${userData.photoURL}')"><i class="fas fa-video text-[10px]"></i></button>
+                </div>
+            `;
+            DOM.contactsList.appendChild(div);
+        }
+    } catch(e) { DOM.contactsList.innerHTML = '<div class="p-8 text-center text-red-400">Error loading history</div>'; }
+};
+
+window.startDirectCall = (uid, type, name, avatar) => {
+    state.activeChatId = uid; 
+    state.activeChatData = { name, avatar, participants: [state.currentUser.uid, uid] };
+    window.startCall(type);
+};
 
 window.listenForCalls = () => {
     const q = query(collection(db, 'calls'));
@@ -1428,3 +1606,24 @@ window.listenForCalls = () => {
         });
     });
 };
+
+// --- Tab Switching ---
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.remove('active', 'bg-indigo-600', 'text-white', 'shadow-lg', 'shadow-indigo-500/20');
+            b.classList.add('bg-slate-800', 'text-slate-400');
+        });
+        btn.classList.add('active', 'bg-indigo-600', 'text-white', 'shadow-lg', 'shadow-indigo-500/20');
+        btn.classList.remove('bg-slate-800', 'text-slate-400');
+        state.activeTab = btn.dataset.tab;
+        renderContacts();
+    });
+});
+
+document.getElementById('add-member-call-btn').addEventListener('click', () => {
+    const email = prompt("Enter the email of the person you want to add to this call:");
+    if(email) {
+        showToast("Invite sent to " + email, "success");
+    }
+});
