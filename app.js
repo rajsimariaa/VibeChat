@@ -819,8 +819,15 @@ window.showContextMenu = (e, msgId) => {
     const isStarred = msg.starredBy && msg.starredBy.includes(state.currentUser.uid);
     document.getElementById('ctx-star').innerHTML = isStarred ? '<i class="fas fa-star-half-alt"></i> Unstar' : '<i class="fas fa-star"></i> Star';
 
-    DOM.contextMenu.style.left = `${e.pageX}px`;
-    DOM.contextMenu.style.top = `${e.pageY}px`;
+    let x = e.pageX;
+    let y = e.pageY;
+    const menuWidth = 180;
+    const menuHeight = 250;
+    if (x + menuWidth > window.innerWidth) x -= menuWidth;
+    if (y + menuHeight > window.innerHeight) y -= menuHeight;
+
+    DOM.contextMenu.style.left = `${x}px`;
+    DOM.contextMenu.style.top = `${y}px`;
     DOM.contextMenu.classList.remove('hidden');
 };
 
