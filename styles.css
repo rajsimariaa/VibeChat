@@ -50,11 +50,9 @@ body {
     background-color: var(--bg-color);
     color: var(--text-primary);
     height: 100dvh;
+    width: 100vw;
     overflow: hidden;
     transition: background-color 0.3s ease, color 0.3s ease;
-    display: flex;
-    justify-content: center;
-    align-items: center;
 }
 
 .dark-theme {
@@ -461,43 +459,30 @@ body {
 .search-icon { color: var(--text-secondary); }
 
 /* Messages */
-.messages-container {
-    flex: 1;
-    padding: 1.5rem;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
 .message-wrapper {
     display: flex;
     flex-direction: column;
-    max-width: 75%;
+    max-width: 80%;
     position: relative;
-    animation: fadeIn 0.3s ease;
+    margin-bottom: 4px;
 }
-.message-wrapper.sent { align-self: flex-end; align-items: flex-end; }
-.message-wrapper.received { align-self: flex-start; align-items: flex-start; }
+.message-wrapper.sent { 
+    align-self: flex-end; 
+    align-items: flex-end; 
+    margin-left: auto;
+    padding-right: 4px; /* Space for shadow */
+}
+.message-wrapper.received { 
+    align-self: flex-start; 
+    align-items: flex-start; 
+    margin-right: auto;
+}
 
+/* We'll handle bubble styles mostly via Tailwind in app.js now to avoid conflicts */
 .message-bubble {
-    padding: 0.75rem 1rem;
-    border-radius: var(--radius-lg);
     position: relative;
-    box-shadow: var(--shadow-sm);
     word-break: break-word;
-    display: inline-block;
-}
-.message-wrapper.sent .message-bubble {
-    background: var(--msg-sent-bg);
-    color: var(--msg-sent-text);
-    border-bottom-right-radius: 0;
-}
-.message-wrapper.received .message-bubble {
-    background: var(--msg-recv-bg);
-    color: var(--msg-recv-text);
-    border-bottom-left-radius: 0;
-    border: 1px solid var(--border-color);
+    width: fit-content;
 }
 
 .message-info {

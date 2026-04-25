@@ -425,23 +425,23 @@ const renderContacts = () => {
 
     filtered.forEach(contact => {
         const div = document.createElement('div');
-        div.className = `contact-item ${state.activeChatId === contact.id ? 'active' : ''}`;
+        div.className = `contact-item flex items-center gap-3 p-4 cursor-pointer hover:bg-slate-800/50 transition-all border-b border-white/5 ${state.activeChatId === contact.id ? 'bg-indigo-600/10 border-l-4 border-l-indigo-600 active' : ''}`;
         div.innerHTML = `
-            <div class="avatar-wrapper">
-                <img src="${contact.avatar}" class="avatar" alt="Avatar">
-                ${contact.online && !contact.isGroup ? `<span class="status-indicator online"></span>` : ''}
+            <div class="avatar-wrapper relative flex-shrink-0">
+                <img src="${contact.avatar}" class="w-12 h-12 rounded-full object-cover border border-white/10" alt="Avatar">
+                ${contact.online && !contact.isGroup ? `<span class="status-indicator absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-slate-900"></span>` : ''}
             </div>
-            <div class="contact-info">
-                <div class="contact-header">
-                    <span class="contact-name">${contact.name} ${contact.isFavorite ? '<i class="fas fa-star" style="color:var(--warning-color);font-size:0.7rem;"></i>' : ''}</span>
-                    <span class="contact-time">${contact.time}</span>
+            <div class="contact-info flex-1 min-width-0 overflow-hidden">
+                <div class="contact-header flex justify-between items-center mb-1">
+                    <span class="contact-name text-sm font-bold text-white truncate">${contact.name} ${contact.isFavorite ? '<i class="fas fa-star text-amber-400 text-[10px]"></i>' : ''}</span>
+                    <span class="contact-time text-[10px] text-slate-500 font-medium">${contact.time}</span>
                 </div>
-                <div class="contact-msg">
-                    <span class="truncate">${contact.lastMsg}</span>
+                <div class="contact-msg text-xs text-slate-400 truncate">
+                    ${contact.lastMsg}
                 </div>
             </div>
-            <div class="contact-meta">
-                ${contact.unread > 0 ? `<span class="unread-badge">${contact.unread}</span>` : ''}
+            <div class="contact-meta flex flex-col items-end gap-1">
+                ${contact.unread > 0 ? `<span class="bg-indigo-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold shadow-lg shadow-indigo-500/20">${contact.unread}</span>` : ''}
             </div>
         `;
         div.addEventListener('click', () => openChat(contact));
@@ -591,23 +591,38 @@ const renderMessages = () => {
         
         let contentHtml = '';
         if(msg.isDeleted) {
-             contentHtml = `<div class="message-bubble deleted-message"><i class="fas fa-ban"></i> This message was deleted.</div>`;
+             contentHtml = `<div class="message-bubble opacity-50 italic text-sm py-2 px-3 rounded-lg border border-white/10 bg-slate-800/50 flex items-center gap-2"><i class="fas fa-ban"></i> This message was deleted.</div>`;
         } else {
              let replyHtml = '';
              if(msg.replyTo) {
                   const repMsg = state.messages.find(m => m.id === msg.replyTo);
                   const repText = repMsg ? (repMsg.text || 'Media') : 'Deleted message';
-                  replyHtml = `<div class="replied-message-ref" onclick="document.querySelector('[data-id=\'${msg.replyTo}\']')?.scrollIntoView({behavior:'smooth', block:'center'})">Replying: ${repText}</div>`;
+                  replyHtml = `<div class="replied-message-ref bg-black/20 border-l-2 border-indigo-400 p-2 mb-2 rounded text-xs opacity-80 cursor-pointer hover:bg-black/30 transition-colors" onclick="document.querySelector('[data-id=\'${msg.replyTo}\']')?.scrollIntoView({behavior:'smooth', block:'center'})">Replying: ${repText}</div>`;
               }
              
              if(msg.type === 'voice') {
-                 contentHtml = `<div class="message-bubble"><audio controls src="${msg.mediaUrl}"></audio></div>`;
+                 contentHtml = `
+                    <div class="message-bubble p-2 rounded-2xl shadow-sm ${isMe ? 'bg-indigo-600 rounded-br-none' : 'bg-slate-800 rounded-bl-none border border-white/5'}">
+                        <audio controls src="${msg.mediaUrl}" class="h-10 w-[240px] mix-blend-screen opacity-90"></audio>
+                    </div>`;
              } else if(msg.type === 'image') {
-                 contentHtml = `<div class="message-bubble"><img src="${msg.mediaUrl}" style="max-width:200px; border-radius:8px;"/><br/>${msg.text}</div>`;
+                 contentHtml = `
+                    <div class="message-bubble p-1 rounded-2xl shadow-sm overflow-hidden ${isMe ? 'bg-indigo-600 rounded-br-none' : 'bg-slate-800 rounded-bl-none border border-white/5'}">
+                        <img src="${msg.mediaUrl}" class="max-w-[200px] md:max-w-[280px] rounded-xl hover:scale-105 transition-transform cursor-pointer"/>
+                        ${msg.text ? `<div class="p-2 text-sm">${msg.text}</div>` : ''}
+                    </div>`;
              } else if(msg.type === 'video') {
-                 contentHtml = `<div class="message-bubble"><video controls src="${msg.mediaUrl}" style="max-width:200px; border-radius:8px;"></video><br/>${msg.text}</div>`;
+                 contentHtml = `
+                    <div class="message-bubble p-1 rounded-2xl shadow-sm overflow-hidden ${isMe ? 'bg-indigo-600 rounded-br-none' : 'bg-slate-800 rounded-bl-none border border-white/5'}">
+                        <video controls src="${msg.mediaUrl}" class="max-w-[200px] md:max-w-[280px] rounded-xl"></video>
+                        ${msg.text ? `<div class="p-2 text-sm">${msg.text}</div>` : ''}
+                    </div>`;
              } else {
-                 contentHtml = `<div class="message-bubble">${replyHtml}${msg.text}</div>`;
+                 contentHtml = `
+                    <div class="message-bubble px-4 py-2.5 rounded-2xl shadow-sm ${isMe ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-100 rounded-bl-none border border-white/5'}">
+                        ${replyHtml}
+                        <div class="text-sm md:text-base leading-relaxed break-words">${msg.text}</div>
+                    </div>`;
              }
         }
         

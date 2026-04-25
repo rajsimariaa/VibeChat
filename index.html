@@ -8,6 +8,20 @@
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#8b5cf6',
+                    }
+                }
+            }
+        }
+    </script>
 </head>
 
 <body class="dark-theme">
@@ -19,103 +33,107 @@
     <input type="file" id="avatar-upload-input" accept="image/*" class="hidden">
 
     <!-- Auth Container -->
-    <div id="auth-container" class="auth-container">
-        <div class="glass-panel auth-box">
-            <div class="auth-header">
-                <div class="logo-icon"><i class="fas fa-comment-dots"></i></div>
-                <h1 class="logo-text">VibeChat</h1>
-                <p class="auth-subtitle">Connect securely with your people</p>
+    <div id="auth-container" class="auth-container fixed inset-0 z-[200] bg-[#030712] flex items-center justify-center overflow-y-auto p-4">
+        <div class="glass-panel auth-box w-full max-w-[420px] p-6 md:p-8 rounded-3xl bg-slate-900/50 border border-white/10 backdrop-blur-xl shadow-2xl">
+            <div class="auth-header text-center mb-8">
+                <div class="logo-icon text-4xl text-indigo-500 mb-2"><i class="fas fa-comment-dots"></i></div>
+                <h1 class="logo-text text-3xl font-bold tracking-tight text-white">VibeChat</h1>
+                <p class="auth-subtitle text-slate-400 text-sm">Connect securely with your people</p>
             </div>
 
-            <div id="login-form">
-                <div class="input-group">
-                    <i class="fas fa-envelope"></i>
-                    <input type="email" id="login-email" placeholder="Email Address" class="auth-input">
+            <div id="login-form" class="space-y-4">
+                <div class="relative">
+                    <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                    <input type="email" id="login-email" placeholder="Email Address" class="w-full bg-slate-800/50 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:border-indigo-500 transition-all text-sm">
                 </div>
-                <div class="input-group">
-                    <i class="fas fa-lock"></i>
-                    <input type="password" id="login-password" placeholder="Password" class="auth-input">
+                <div class="relative">
+                    <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                    <input type="password" id="login-password" placeholder="Password" class="w-full bg-slate-800/50 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:border-indigo-500 transition-all text-sm">
                 </div>
-                <button id="login-btn" class="btn btn-primary btn-block">Login</button>
+                <button id="login-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95">Login</button>
 
-                <div class="divider"><span>OR</span></div>
+                <div class="flex items-center gap-4 text-slate-500 my-2">
+                    <div class="h-[1px] flex-1 bg-white/10"></div>
+                    <span class="text-xs font-medium">OR</span>
+                    <div class="h-[1px] flex-1 bg-white/10"></div>
+                </div>
 
-                <button id="google-login-btn" class="btn btn-google btn-block">
+                <button id="google-login-btn" class="w-full bg-white text-slate-900 font-semibold py-3 rounded-xl flex items-center justify-center gap-3 transition-all hover:bg-slate-100 active:scale-95">
                     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G"
-                        class="google-icon">
+                        class="w-5 h-5">
                     Continue with Google
                 </button>
-                <p class="auth-switch">New here? <span id="show-signup" class="text-link">Create Account</span></p>
+                <p class="text-center text-sm text-slate-400 mt-4">New here? <span id="show-signup" class="text-indigo-400 hover:text-indigo-300 cursor-pointer font-medium">Create Account</span></p>
             </div>
 
-            <div id="signup-form" class="hidden">
-                <div class="input-group">
-                    <i class="fas fa-user"></i>
-                    <input type="text" id="signup-name" placeholder="Full Name" class="auth-input">
+            <div id="signup-form" class="hidden space-y-4">
+                <div class="relative">
+                    <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                    <input type="text" id="signup-name" placeholder="Full Name" class="w-full bg-slate-800/50 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:border-indigo-500 transition-all text-sm">
                 </div>
-                <div class="input-group">
-                    <i class="fas fa-envelope"></i>
-                    <input type="email" id="signup-email" placeholder="Email Address" class="auth-input">
+                <div class="relative">
+                    <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                    <input type="email" id="signup-email" placeholder="Email Address" class="w-full bg-slate-800/50 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:border-indigo-500 transition-all text-sm">
                 </div>
-                <div class="input-group">
-                    <i class="fas fa-lock"></i>
-                    <input type="password" id="signup-password" placeholder="Password" class="auth-input">
+                <div class="relative">
+                    <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                    <input type="password" id="signup-password" placeholder="Create Password" class="w-full bg-slate-800/50 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:border-indigo-500 transition-all text-sm">
                 </div>
-                <button id="signup-btn" class="btn btn-primary btn-block">Sign Up</button>
-                <p class="auth-switch">Already have an account? <span id="show-login" class="text-link">Login</span></p>
+                <button id="signup-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95">Create Account</button>
+                <p class="text-center text-sm text-slate-400 mt-4">Already have an account? <span id="show-login" class="text-indigo-400 hover:text-indigo-300 cursor-pointer font-medium">Login</span></p>
             </div>
 
             <!-- Secondary Password Form (MyPeople) -->
-            <div id="secondary-auth-form" class="hidden slide-in">
-                <h3 class="auth-subtitle">Verification Required</h3>
-                <p class="instruction-text">Enter the community access password to continue.</p>
-                <div class="input-group">
-                    <i class="fas fa-shield-alt"></i>
-                    <input type="password" id="community-password" placeholder="Community Password" class="auth-input">
+            <div id="secondary-auth-form" class="hidden slide-in space-y-6 text-center">
+                <h3 class="text-xl font-bold text-white">Verification Required</h3>
+                <p class="text-sm text-slate-400 leading-relaxed px-4">Enter the community access password to continue to the messenger.</p>
+                <div class="relative">
+                    <i class="fas fa-shield-alt absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                    <input type="password" id="community-password" placeholder="Community Password" class="w-full bg-slate-800/50 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:border-indigo-500 transition-all">
                 </div>
-                <button id="community-login-btn" class="btn btn-primary btn-block">Enter VibeChat</button>
+                <button id="community-login-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95">Enter VibeChat</button>
             </div>
         </div>
     </div>
 
     <!-- Main App Container -->
-    <div id="app-container" class="app-container hidden fade-in">
+    <div id="app-container" class="app-container hidden fade-in w-full h-[100dvh] flex overflow-hidden relative shadow-none">
         <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <header class="sidebar-header">
-                <div class="user-profile" id="current-user-profile">
-                    <div class="avatar-wrapper">
+        <aside class="sidebar w-full md:w-[350px] md:static absolute inset-0 z-[100] md:z-10 bg-slate-900 flex flex-col transition-transform duration-300" id="sidebar">
+            <header class="sidebar-header p-4 border-b border-white/10 flex justify-between items-center bg-slate-900/50 backdrop-blur-md">
+                <div class="user-profile flex items-center gap-3 cursor-pointer group" id="current-user-profile">
+                    <div class="avatar-wrapper relative">
                         <img src="https://ui-avatars.com/api/?name=User&background=random" alt="Profile"
-                            id="user-avatar" class="avatar">
-                        <span class="status-indicator online"></span>
+                            id="user-avatar" class="w-10 h-10 rounded-full object-cover border-2 border-white/10 group-hover:border-indigo-500 transition-all">
+                        <span class="status-indicator absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-slate-900"></span>
                     </div>
-                    <div class="user-info-brief">
-                        <span id="user-name" class="truncate">Loading...</span>
-                        <span id="user-status-text" class="status-brief truncate">Online</span>
+                    <div class="user-info-brief flex flex-col max-w-[150px]">
+                        <span id="user-name" class="text-sm font-bold text-white truncate">Loading...</span>
+                        <span id="user-status-text" class="text-[10px] text-emerald-400 font-medium truncate">Online</span>
                     </div>
                 </div>
-                <div class="sidebar-actions">
-                    <button class="icon-btn" id="create-group-btn" title="Create Group"><i class="fas fa-users"></i></button>
-                    <button class="icon-btn" id="theme-toggle" title="Toggle Theme"><i class="fas fa-moon"></i></button>
-                    <button class="icon-btn" id="settings-btn" title="Settings"><i class="fas fa-cog"></i></button>
+                <div class="sidebar-actions flex gap-1">
+                    <button class="icon-btn w-8 h-8 text-slate-400 hover:text-white" id="create-group-btn" title="Create Group"><i class="fas fa-users"></i></button>
+                    <button class="icon-btn w-8 h-8 text-slate-400 hover:text-white" id="theme-toggle" title="Toggle Theme"><i class="fas fa-moon"></i></button>
+                    <button class="icon-btn w-8 h-8 text-slate-400 hover:text-white" id="settings-btn" title="Settings"><i class="fas fa-cog"></i></button>
                 </div>
             </header>
 
-            <div class="search-container">
-                <div class="search-bar">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="contact-search" placeholder="Search or start new chat">
+            <div class="search-container p-4">
+                <div class="search-bar relative flex items-center bg-slate-800/50 rounded-xl border border-white/5 focus-within:border-indigo-500/50 transition-all">
+                    <i class="fas fa-search absolute left-4 text-slate-500 text-sm"></i>
+                    <input type="text" id="contact-search" placeholder="Search or start new chat" class="w-full bg-transparent py-2.5 pl-11 pr-4 text-white text-sm focus:outline-none">
                 </div>
             </div>
 
-            <div class="tabs-container">
-                <div class="tabs">
-                    <button class="tab-btn active" data-tab="active">Active</button>
-                    <button class="tab-btn" data-tab="friends">Friends</button>
-                    <button class="tab-btn" data-tab="groups">Groups</button>
-                    <button class="tab-btn" data-tab="unread">Unread <span class="badge hidden"
+            <div class="tabs-container px-4 mb-2">
+                <div class="tabs flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+                    <button class="tab-btn active bg-indigo-600 text-white px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shadow-lg shadow-indigo-500/20" data-tab="active">Active</button>
+                    <button class="tab-btn bg-slate-800 text-slate-400 hover:text-slate-200 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all" data-tab="friends">Friends</button>
+                    <button class="tab-btn bg-slate-800 text-slate-400 hover:text-slate-200 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all" data-tab="groups">Groups</button>
+                    <button class="tab-btn bg-slate-800 text-slate-400 hover:text-slate-200 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all" data-tab="unread">Unread <span class="badge hidden ml-1 bg-indigo-500 text-[10px] px-1.5 py-0.5 rounded-full"
                             id="unread-total-badge">0</span></button>
-                    <button class="tab-btn" data-tab="archive">Archive</button>
+                    <button class="tab-btn bg-slate-800 text-slate-400 hover:text-slate-200 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all" data-tab="archive">Archive</button>
                 </div>
             </div>
 
@@ -129,26 +147,26 @@
         </aside>
 
         <!-- Main Chat Area -->
-        <main class="chat-area" id="chat-area">
-            <div class="no-chat-selected" id="no-chat-selected">
-                <div class="vibe-icon-large"><i class="fas fa-comment-medical"></i></div>
-                <h2>VibeChat</h2>
-                <p>Select a conversation or start a new one to begin messaging.</p>
-                <p class="encryption-notice"><i class="fas fa-lock"></i> End-to-end encrypted design</p>
+        <main class="chat-area flex-1 flex flex-col relative bg-[#030712]" id="chat-area">
+            <div class="no-chat-selected flex-1 flex flex-col items-center justify-center text-center p-6 bg-slate-950/30" id="no-chat-selected">
+                <div class="vibe-icon-large text-6xl text-indigo-500/30 mb-4 drop-shadow-2xl animate-pulse"><i class="fas fa-comment-medical"></i></div>
+                <h2 class="text-2xl font-bold text-white mb-2">VibeChat</h2>
+                <p class="text-slate-400 max-w-xs mx-auto text-sm leading-relaxed mb-6">Select a conversation or start a new one to begin messaging.</p>
+                <p class="encryption-notice text-[10px] text-slate-600 uppercase tracking-widest flex items-center gap-2"><i class="fas fa-lock text-[8px]"></i> End-to-end encrypted design</p>
             </div>
 
-            <div class="active-chat hidden" id="active-chat">
-                <header class="chat-header">
-                    <div class="chat-info">
-                        <button class="icon-btn mobile-back-btn" id="back-to-sidebar"><i
+            <div class="active-chat hidden flex flex-col h-full w-full bg-[#030712]" id="active-chat">
+                <header class="chat-header p-2.5 md:p-4 flex justify-between items-center bg-slate-900/80 backdrop-blur-xl border-b border-white/5 z-20">
+                    <div class="chat-info flex items-center gap-2 md:gap-4 min-w-0 flex-1">
+                        <button class="icon-btn mobile-back-btn block md:hidden mr-2" id="back-to-sidebar"><i
                                 class="fas fa-arrow-left"></i></button>
-                        <div class="avatar-wrapper">
-                            <img src="" alt="Chat Avatar" id="chat-avatar" class="avatar">
-                            <span class="status-indicator" id="chat-online-indicator"></span>
+                        <div class="avatar-wrapper relative flex-shrink-0">
+                            <img src="" alt="Chat Avatar" id="chat-avatar" class="w-10 h-10 rounded-full object-cover border border-white/10">
+                            <span class="status-indicator absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-slate-900" id="chat-online-indicator"></span>
                         </div>
-                        <div class="chat-details" id="chat-details-btn" style="cursor: pointer;">
-                            <h3 id="chat-name" class="truncate">Chat Name</h3>
-                            <span id="chat-last-seen" class="status-text truncate">last seen recently</span>
+                        <div class="chat-details flex flex-col min-w-0 cursor-pointer" id="chat-details-btn">
+                            <h3 id="chat-name" class="text-sm md:text-base font-bold text-white truncate leading-tight">Chat Name</h3>
+                            <span id="chat-last-seen" class="text-[10px] md:text-xs text-slate-400 truncate">last seen recently</span>
                         </div>
                     </div>
                     <div class="chat-actions">
@@ -182,35 +200,35 @@
                     <button class="icon-btn small" id="close-chat-search"><i class="fas fa-times"></i></button>
                 </div>
 
-                <div class="messages-container custom-scroll" id="messages-container">
+                <div class="messages-container flex-1 overflow-y-auto p-3 md:p-6 flex flex-col gap-3 md:gap-4 custom-scroll bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')]" id="messages-container">
                     <!-- Messages will be rendered here -->
                 </div>
 
-                <div class="chat-input-area">
-                    <div id="emoji-picker-container" class="hidden" style="position: absolute; bottom: 70px; left: 10px; z-index: 100; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 5px;">
+                <div class="chat-input-area p-2 md:p-4 bg-slate-900/70 border-t border-white/10 flex items-end gap-1 md:gap-2 relative">
+                    <div id="emoji-picker-container" class="hidden absolute bottom-16 left-2 z-[100] bg-slate-800 border border-white/10 rounded-lg p-2">
                         <!-- Simple emoji list -->
-                        <span class="emoji-opt" style="cursor:pointer; font-size: 1.5rem; margin: 2px;">😀</span>
-                        <span class="emoji-opt" style="cursor:pointer; font-size: 1.5rem; margin: 2px;">😂</span>
-                        <span class="emoji-opt" style="cursor:pointer; font-size: 1.5rem; margin: 2px;">❤️</span>
-                        <span class="emoji-opt" style="cursor:pointer; font-size: 1.5rem; margin: 2px;">👍</span>
-                        <span class="emoji-opt" style="cursor:pointer; font-size: 1.5rem; margin: 2px;">🔥</span>
-                        <span class="emoji-opt" style="cursor:pointer; font-size: 1.5rem; margin: 2px;">🎉</span>
+                        <span class="emoji-opt cursor-pointer text-xl m-1">😀</span>
+                        <span class="emoji-opt cursor-pointer text-xl m-1">😂</span>
+                        <span class="emoji-opt cursor-pointer text-xl m-1">❤️</span>
+                        <span class="emoji-opt cursor-pointer text-xl m-1">👍</span>
+                        <span class="emoji-opt cursor-pointer text-xl m-1">🔥</span>
+                        <span class="emoji-opt cursor-pointer text-xl m-1">🎉</span>
                     </div>
-                    <button class="icon-btn" id="emoji-btn"><i class="far fa-smile"></i></button>
-                    <button class="icon-btn" id="attach-btn"><i class="fas fa-paperclip"></i></button>
+                    <button class="icon-btn w-10 h-10" id="emoji-btn"><i class="far fa-smile"></i></button>
+                    <button class="icon-btn w-10 h-10" id="attach-btn"><i class="fas fa-paperclip"></i></button>
                     
-                    <div class="input-wrapper">
-                        <div id="replying-to-container" class="replying-to hidden">
-                            <div class="reply-content">
-                                <span class="reply-user" id="reply-to-user">User</span>
-                                <span class="reply-text truncate" id="reply-to-text">Message</span>
+                    <div class="input-wrapper flex-1 bg-slate-800 rounded-2xl border border-white/10 flex flex-col overflow-hidden transition-all focus-within:border-indigo-500">
+                        <div id="replying-to-container" class="replying-to hidden flex justify-between items-center p-2 bg-indigo-500/10 border-l-4 border-indigo-500 text-xs">
+                            <div class="reply-content flex flex-col overflow-hidden">
+                                <span class="reply-user font-bold text-indigo-400" id="reply-to-user">User</span>
+                                <span class="reply-text text-slate-400 truncate" id="reply-to-text">Message</span>
                             </div>
-                            <button class="icon-btn small" id="cancel-reply"><i class="fas fa-times"></i></button>
+                            <button class="icon-btn small w-6 h-6" id="cancel-reply"><i class="fas fa-times"></i></button>
                         </div>
-                        <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off">
+                        <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" class="w-full bg-transparent border-none p-3 text-white focus:outline-none text-base md:text-lg">
                     </div>
 
-                    <button class="icon-btn" id="record-btn"><i class="fas fa-microphone"></i></button>
+                    <button class="icon-btn w-10 h-10" id="record-btn"><i class="fas fa-microphone"></i></button>
 
                     <div class="voice-recording-ui hidden slide-in-right" id="voice-recording-ui">
                         <div class="recording-pulse"></div>
