@@ -766,7 +766,7 @@ input:checked + .slider:before { transform: translateX(20px); }
         margin: 2rem 0;
     }
     .app-container { height: 100dvh; border-radius: 0; max-width: 100%; border: none; }
-    .sidebar { width: 100%; position: absolute; height: 100%; transition: transform 0.3s ease; }
+    .sidebar { width: 100%; position: absolute; top: 0; left: 0; height: 100%; transition: transform 0.3s ease; z-index: 100; }
     .sidebar.mobile-hidden { transform: translateX(-100%); }
     .mobile-back-btn { display: block; }
     .message-wrapper { max-width: 85%; }
